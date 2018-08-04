@@ -17,6 +17,8 @@
 package org.apache.dubbo.demo.consumer;
 
 import org.apache.dubbo.demo.DemoService;
+import org.apache.dubbo.demo.Test;
+import org.apache.dubbo.demo.TestService;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class Consumer {
@@ -28,8 +30,40 @@ public class Consumer {
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext(new String[]{"META-INF/spring/dubbo-demo-consumer.xml"});
         context.start();
         DemoService demoService = (DemoService) context.getBean("demoService"); // get remote service proxy
+        TestService testService = (TestService) context.getBean("testService"); // get remote service proxy
 
-        while (true) {
+        for (int i = 0; i < 20; i++) {
+            Thread t;
+            if (i <= 30) {
+                t = new Thread(() -> {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    String msg = demoService.sayHello("jinyuanyang");
+                    int d = demoService.sayHelloi("aa");
+                    System.out.println(msg);
+                    System.out.println(d);
+                });
+            } else {
+                t = new Thread(() -> {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    Integer a = testService.test("duxingxing", 18);
+                    System.out.println(a);
+                    /*Test test = testService.test("duxingxing", 18);
+                    System.out.println(test.toString());*/
+                });
+            }
+
+            t.start();
+        }
+
+        /*while (true) {
             try {
                 Thread.sleep(1000);
                 String hello = demoService.sayHello("world"); // call remote method
@@ -40,7 +74,7 @@ public class Consumer {
             }
 
 
-        }
+        }*/
 
     }
 }

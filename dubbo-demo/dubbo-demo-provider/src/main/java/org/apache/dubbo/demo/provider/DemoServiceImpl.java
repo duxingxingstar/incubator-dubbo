@@ -17,6 +17,7 @@
 package org.apache.dubbo.demo.provider;
 
 import org.apache.dubbo.demo.DemoService;
+import org.apache.dubbo.demo.Test;
 import org.apache.dubbo.rpc.RpcContext;
 
 import java.text.SimpleDateFormat;
@@ -30,4 +31,8 @@ public class DemoServiceImpl implements DemoService {
         return "Hello " + name + ", response from provider: " + RpcContext.getContext().getLocalAddress();
     }
 
+    @Override
+    public Integer sayHelloi(String name) {
+        return 333;
+    }
 }

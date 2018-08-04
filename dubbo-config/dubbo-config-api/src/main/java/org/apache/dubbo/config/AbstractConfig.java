@@ -172,6 +172,12 @@ public abstract class AbstractConfig implements Serializable {
         appendParameters(parameters, config, null);
     }
 
+    /**
+     * 将配置对象的属性，添加到参数集合
+     * @param parameters
+     * @param config
+     * @param prefix
+     */
     @SuppressWarnings("unchecked")
     protected static void appendParameters(Map<String, String> parameters, Object config, String prefix) {
         if (config == null) {
@@ -185,11 +191,12 @@ public abstract class AbstractConfig implements Serializable {
                         && !"getClass".equals(name)
                         && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 0
-                        && isPrimitive(method.getReturnType())) {
+                        && isPrimitive(method.getReturnType())) {// 方法为获取基本类型，public 的 getting 方法。
                     Parameter parameter = method.getAnnotation(Parameter.class);
                     if (method.getReturnType() == Object.class || parameter != null && parameter.excluded()) {
                         continue;
                     }
+                    // 获得属性名
                     int i = name.startsWith("get") ? 3 : 2;
                     String prop = StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");
                     String key;
@@ -198,17 +205,22 @@ public abstract class AbstractConfig implements Serializable {
                     } else {
                         key = prop;
                     }
+                    // 获得属性值
                     Object value = method.invoke(config);
                     String str = String.valueOf(value).trim();
                     if (value != null && str.length() > 0) {
+                        // 转义
                         if (parameter != null && parameter.escaped()) {
                             str = URL.encode(str);
                         }
+                        // 拼接，详细说明参见 `Parameter#append()` 方法的说明。
                         if (parameter != null && parameter.append()) {
+                // default. 里获取，适用于 ServiceConfig =》ProviderConfig 、ReferenceConfig =》ConsumerConfig
                             String pre = parameters.get(Constants.DEFAULT_KEY + "." + key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;
                             }
+                            // 通过 `parameters` 属性配置，例如 `AbstractMethodConfig.parameters` 。
                             pre = parameters.get(key);
                             if (pre != null && pre.length() > 0) {
                                 str = pre + "," + str;

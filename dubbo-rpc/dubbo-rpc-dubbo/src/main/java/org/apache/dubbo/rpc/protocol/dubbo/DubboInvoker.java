@@ -73,6 +73,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         inv.setAttachment(Constants.PATH_KEY, getUrl().getPath());
         inv.setAttachment(Constants.VERSION_KEY, version);
 
+        // 传输端的客户端
         ExchangeClient currentClient;
         if (clients.length == 1) {
             currentClient = clients[0];
@@ -80,18 +81,25 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
         try {
+            // 是否异步
             boolean isAsync = RpcUtils.isAsync(getUrl(), invocation);
             boolean isAsyncFuture = RpcUtils.isGeneratedFuture(inv) || RpcUtils.isFutureReturnType(inv);
+            // 是否返回值，也就是相当于发送了一个指令，不在乎服务端的返回
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
             int timeout = getUrl().getMethodParameter(methodName, Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
-            if (isOneway) {
+            if (isOneway) {// 无论同步、异步，只发送指令
+                // sent="true" 等待消息发出，消息发送失败将抛出异常。
+                // sent="false" 不等待消息发出，将消息放入 IO 队列，即刻返回。
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
+                // 客户端发送请求
                 currentClient.send(inv, isSent);
                 RpcContext.getContext().setFuture(null);
                 return new RpcResult();
-            } else if (isAsync) {
+            } else if (isAsync) {// 异步调用
+                // 发送请求，并返回future
                 ResponseFuture future = currentClient.request(inv, timeout);
                 // For compatibility
+                // 设置future
                 FutureAdapter<Object> futureAdapter = new FutureAdapter<>(future);
                 RpcContext.getContext().setFuture(futureAdapter);
 
@@ -103,8 +111,9 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
                     result = new SimpleAsyncRpcResult(futureAdapter, futureAdapter.getResultFuture(), false);
                 }
                 return result;
-            } else {
+            } else {// 同步串行化调用
                 RpcContext.getContext().setFuture(null);
+                // 发送请求，并返回响应
                 return (Result) currentClient.request(inv, timeout).get();
             }
         } catch (TimeoutException e) {
